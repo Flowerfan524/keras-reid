@@ -15,23 +15,26 @@ def extract_imgs(dire):
     cam = []
     for file in os.listdir(dire):
         if file.endswith('.jpg'):
-            im = Image.open(dire + file)
-            x += [np.array(im)]
+            x += [dire + file]
             if file.startswith('-'):
                 y += [-1]
                 cam += [int(file[4])]
             else:
                 y += [int(file[:4])]
                 cam += [int(file[6])]
-                
+
     return x,y,cam
-                
-        
-   
+
+def read_input_img(file):
+    im = Image.open(file)
+    im = im.resize((256,256))
+    return im
+
+
 x_train, y_train, cam_train = extract_imgs(train_dire)
 x_test, y_test, cam_test = extract_imgs(test_dire)
-x_query, y_query, cam_query = extract_imgs(query_dire)      
+x_query, y_query, cam_query = extract_imgs(query_dire)
 
 np.savez('market1501.npz', x_train=x_train, y_train=y_train, cam_train=cam_train
                          , x_test=x_test, y_test=y_test, cam_test=cam_test
-                         , x_query=x_query, y_query=y_query, cam_query=cam_query)    
+                         , x_query=x_query, y_query=y_query, cam_query=cam_query)
