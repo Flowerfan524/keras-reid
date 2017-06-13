@@ -2,7 +2,7 @@ import numpy as np
 import os
 from keras.preprocessing import image
 from keras.utils import to_categorical
-from keras.image import ImageDataGenerator as IDG
+from keras.preprocessing.image import ImageDataGenerator as IDG
 
 def extract_data_from_lst(lst, preprocess=True):
     x = []
@@ -36,9 +36,9 @@ def read_input_img(file):
     return im
 
 def image_quintuple_generator(img_quintuples, batch_size):
-    datagen_args = dict{width_shift_range = 0.1,
+    datagen_args = dict(width_shift_range = 0.1,
                         height_shift_range= 0.1,
-                        horizontal_flip = True}
+                        horizontal_flip = True)
     datagen_left = IDG(**datagen_args)
     datagen_right = IDG(**datagen_args)
     img_cache = {}
@@ -53,14 +53,14 @@ def image_quintuple_generator(img_quintuples, batch_size):
             batch = [img_quintuples[i] for i in batch_indices]
             seed = np.random.randint(0,100,1)[0]
             Xleft = process_images([b[0] for b in batch], seed, datagen_left, img_cache)
-            Xright = process_imgas([b[1] for b in batch], seed, datagen_right, img_cache)
+            Xright = process_images([b[1] for b in batch], seed, datagen_right, img_cache)
             Y_diff = np.array([b[2] for b in batch])
             Y_cls1 = np.array([b[3] for b in batch])
             Y_cls2 = np.array([b[4] for b in batch])
-            yeild Xleft, Xright, Y_diff, Y_cls1, Y_cls2
+            yield [Xleft, Xright], [Y_diff, Y_cls1, Y_cls2]
 
 def cache_read(img_name, img_cache):
-    if not img_cache.has_key(img_name):
+    if img_name not in img_cache:
         img = read_input_img(img_name)
         img_cache[img_name] = img
     return img_cache[img_name]
