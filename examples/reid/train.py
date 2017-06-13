@@ -1,8 +1,8 @@
 import numpy as np
 from keras.models import Model
 from utils import image_quintuple_generator as iqg
-from utils import extract_data_from_lst as edfl
 import reid_net
+import utils
 from sklearn.preprocessing import LabelBinarizer as LB
 
 input_shape = (224,224,3,)
@@ -23,7 +23,7 @@ model.save_weights('../data/model_weights.h5')
 # test on train data set
 pred_model = Model(inputs=model.input[0], outputs=model.output[1])
 f = np.load('../data/train.lst.npz')
-x_lst = f['data']
+x_lst, y_train = f['data'], f['label']
 x_train = utils.extract_data_from_lst(x_lst)
 pred_y = pred_model.predict(x_train)
 pred_y = np.argmax(pred_y, axis = 1)

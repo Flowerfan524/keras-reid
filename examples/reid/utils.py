@@ -70,11 +70,14 @@ def process_images(img_names, seed, datagen, img_cache):
     X = np.zeros((len(img_names), 224, 224, 3))
     for idx, img_name in enumerate(img_names):
         img = cache_read(img_name, img_cache)
+        img[:,:,0] -= 97.8286
+        img[:,:,1] -= 99.0468
+        img[:,:,2] -= 105.606
         X[idx] = datagen.random_transform(img)
     return X
 
 
-def img_process(imgs, shift = (97.10,99.23,105.45)):
+def img_process(imgs, shift = (97.8286,99.0468,105.606)):
     imgs[:,:,:,0] -= shift[0]
     imgs[:,:,:,1] -= shift[1]
     imgs[:,:,:,2] -= shift[2]

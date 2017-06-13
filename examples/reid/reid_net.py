@@ -5,6 +5,7 @@ from keras.optimizers import RMSprop
 from keras import backend as K
 from keras.utils import to_categorical
 
+
 def euclidean_distance(vects):
     x, y = vects
     return K.sqrt(K.maximum(K.sum(K.square(x - y), axis=1, keepdims=True), K.epsilon()))
@@ -24,8 +25,8 @@ def contrastive_loss(y_true, y_pred):
 
 def reid_net(include_top = True, input_shape = None):
     vgg16 = VGG16(include_top=False,input_shape=input_shape)
-    for layer in vgg16.layers:
-        layer.trainable = False
+#    for layer in vgg16.layers:
+#        layer.trainable = False
     x = vgg16.output
     x = Flatten(name='flatten')(x)
     x = Dense(1024, activation = 'relu', name='fc1')(x)
@@ -46,7 +47,7 @@ def reid_net(include_top = True, input_shape = None):
                       output_shape=eucl_dist_output_shape)([fea1, fea2])
     model = Model(inputs = [input1, input2], outputs = [distance,cls1,cls2])
     rms = RMSprop()
-    model.compile(loss=[contrastive_loss,'categorical_crossentropy','categorical_crossentropy'],optimizer=rms,loss_weights=[0.5,0.5,0.5])
+    model.compile(loss=['binary_crossentropy','categorical_crossentropy','categorical_crossentropy'],optimizer=rms,loss_weights=[0.5,0.5,0.5])
     return model
 
 
