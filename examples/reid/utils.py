@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from keras.preprocessing import image
+from keras.utils import to_categorical
 
 def extract_data_from_lst(lst, preprocess=True):
     x = []
@@ -26,7 +27,7 @@ def generate_train_lst(dire):
                 y += [int(file[:4])]
                 cam += [int(file[6])]
 
-    return x,y,cam
+    return np.array(x),np.array(y),np.array(cam)
 
 def read_input_img(file):
     im = image.load_img(file, target_size=(224,224,))
@@ -52,28 +53,28 @@ def create_pairs(x,y):
     num_clss = len(clss)
     digit_indices = [np.where(y == c)[0] for c in clss]
     pairs = []
-    labels = []
+    label_diff = []
+    label_clss = []
     for d in range(num_clss):
         n = len(digit_indices[d])
         for i in range(n):
-            inc = random.randrange(1,n)
+            inc = np.random.randint(1,n)
             dn = (i + inc) % n
             z1, z2 = digit_indices[d][i], digit_indices[d][dn]
             l1 = to_categorical(d, num_clss).squeeze()
             pairs += [[x[z1], x[z2]]]
-            labels += [[1, l1, l1]]
+            label_diff += [1]
+            label_clss += [[l1, l1]]
             incs = np.random.randint(1, num_clss, neg_size)
             dns = (incs + d) % num_clss
-            dxs = [random.randrange(len(digit_indices[dn])) for dn in dns]
+            dxs = [np.random.randint(len(digit_indices[dn])) for dn in dns]
             for idx1, idx2 in zip(dns, dxs):
-                z1, z2 = digit_indices[idx1],digit_indices[idx2]
+                z1, z2 = digit_indices[d][i],digit_indices[idx1][idx2]
                 l2 = to_categorical(idx1, num_clss).squeeze()
                 pairs += [[x[z1], x[z2]]]
-                labels += [[0, l1, l2]]
-    s = np.arange(pairs.shape[0])
-    np.random.shuffle(s)
-    pairs,labels = pairs[s], labels[s]
-    return np.array(pairs), np.array(labels)
+                label_diff += [0]
+                label_clss += [[l1, l2]]
+    return pairs, label_diff, label_clss
 
 
 
@@ -91,8 +92,6 @@ if __name__ == '__main__':
     np.savez('../data/test.lst', data=x_test, label=y_test, cam=cam_test)
     np.savez('../data/query.lst', data=x_query, label=y_query, cam=cam_query)
 
-    s = np.arange(y_train.shape[0])
-    np.random.shuffle(s)
-    x_train, y_train = x_train[s], y_train[s]
-    lst_pairs, y = create_pairs(x_train, y_train)
-    np.savez('../data/input.lst', pair=lst_pairs, label=y)
+    lst_pairs, y_diff, y_clss = create_pairs(x_train, y_train)
+    tuples = np.array([(x[0],x[1],y,z[0],z[1]) for x,y,z in zip(lst_pairs, y_diff, y_clss)], dtype=object)
+    np.savez('../data/input.lst', tuples = tuples)
