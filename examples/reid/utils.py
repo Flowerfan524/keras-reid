@@ -2,6 +2,7 @@ import numpy as np
 import os
 from keras.preprocessing import image
 from keras.utils import to_categorical
+from keras.image import ImageDataGenerator as IDG
 
 def extract_data_from_lst(lst, preprocess=True):
     x = []
@@ -33,6 +34,45 @@ def read_input_img(file):
     im = image.load_img(file, target_size=(224,224,))
     im = image.img_to_array(im)
     return im
+
+def image_quintuple_generator(img_quintuples, batch_size):
+    datagen_args = dict{width_shift_range = 0.1,
+                        height_shift_range= 0.1,
+                        horizontal_flip = True}
+    datagen_left = IDG(**datagen_args)
+    datagen_right = IDG(**datagen_args)
+    img_cache = {}
+
+    while True:
+        #loop per epoch
+        num_recs = len(img_quintuples)
+        indices = np.random.permutation(np.arange(num_recs))
+        num_batches = num_recs // batch_size
+        for bid in range(num_batches):
+            batch_indices = indices[bid * batch_size:(bid + 1) * batch_size]
+            batch = [img_quintuples[i] for i in batch_indices]
+            seed = np.random.randint(0,100,1)[0]
+            Xleft = process_images([b[0] for b in batch], seed, datagen_left, img_cache)
+            Xright = process_imgas([b[1] for b in batch], seed, datagen_right, img_cache)
+            Y_diff = np.array([b[2] for b in batch])
+            Y_cls1 = np.array([b[3] for b in batch])
+            Y_cls2 = np.array([b[4] for b in batch])
+            yeild Xleft, Xright, Y_diff, Y_cls1, Y_cls2
+
+def cache_read(img_name, img_cache):
+    if not img_cache.has_key(img_name):
+        img = read_input_img(img_name)
+        img_cache[img_name] = img
+    return img_cache[img_name]
+
+def process_images(img_names, seed, datagen, img_cache):
+    np.random.seed(seed)
+    X = np.zeros((len(img_names), 224, 224, 3))
+    for idx, img_name in enumerate(img_names):
+        img = cache_read(img_name, img_cache)
+        X[idx] = datagen.random_transform(img)
+    return X
+
 
 def img_process(imgs, shift = (97.10,99.23,105.45)):
     imgs[:,:,:,0] -= shift[0]
