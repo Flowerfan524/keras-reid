@@ -8,7 +8,7 @@ from keras.utils import to_categorical
 
 def euclidean_distance(vects):
     x, y = vects
-    return K.square(x - y)
+    return K.prod(K.stack([x, y],axis=1),axis=1)
 
 def eucl_dist_output_shape(shapes):
     shape1, shape2 = shapes
@@ -48,12 +48,10 @@ def reid_net(include_top = True, input_shape = None):
     cls1,cls2 = cls_model(input1), cls_model(input2)
     distance = Lambda(euclidean_distance,
                       output_shape=eucl_dist_output_shape,name='distance')([fea1, fea2])
-    diff_out = Dense(1, activation='sigmoid', name='loss_diff')(distance)
+    diff_out = Dense(2, activation='softmax', name='loss_diff')(distance)
     model = Model(inputs = [input1, input2], outputs = [diff_out,cls1,cls2])
     rms = RMSprop()
     sgd = SGD(lr=0.001, momentum=0.9, decay=0.0005)
-    model.compile(loss=['binary_crossentropy','categorical_crossentropy','categorical_crossentropy'],
+    model.compile(loss=['categorical_crossentropy','categorical_crossentropy','categorical_crossentropy'],
             optimizer=sgd,loss_weights=[0.5,0.5,0.5],metrics=['accuracy'])
     return model
-
-

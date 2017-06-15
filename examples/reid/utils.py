@@ -1,8 +1,10 @@
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from keras.preprocessing import image
 from keras.utils import to_categorical
 from keras.preprocessing.image import ImageDataGenerator as IDG
+
 
 def extract_data_from_lst(lst, preprocess=True):
     x = []
@@ -70,10 +72,10 @@ def process_images(img_names, seed, datagen, img_cache):
     X = np.zeros((len(img_names), 224, 224, 3))
     for idx, img_name in enumerate(img_names):
         img = cache_read(img_name, img_cache)
-        img[:,:,0] -= 97.8286
-        img[:,:,1] -= 99.0468
-        img[:,:,2] -= 105.606
         X[idx] = datagen.random_transform(img)
+    X[:,:,:,0] -= 97.8286
+    X[:,:,:,1] -= 99.0468
+    X[:,:,:,2] -= 105.606
     return X
 
 
@@ -85,6 +87,15 @@ def img_process(imgs, shift = (97.8286,99.0468,105.606)):
    # imgs[:,:,:,1] /= 255
    # imgs[:,:,:,2] /= 255
     return imgs
+
+
+def draw_img(subplot, img, title):
+    plt.subplot(subplot)
+    plt.imshow(img)
+    plt.title(title)
+    plt.xsticks([])
+    plt.ysticks([])
+
 
 
 def create_pairs(x,y):
@@ -106,7 +117,7 @@ def create_pairs(x,y):
             z1, z2 = digit_indices[d][i], digit_indices[d][dn]
             l1 = to_categorical(d, num_clss).squeeze()
             pairs += [[x[z1], x[z2]]]
-            label_diff += [1]
+            label_diff += [[0,1]]
             label_clss += [[l1, l1]]
             incs = np.random.randint(1, num_clss, neg_size)
             dns = (incs + d) % num_clss
@@ -115,7 +126,7 @@ def create_pairs(x,y):
                 z1, z2 = digit_indices[d][i],digit_indices[idx1][idx2]
                 l2 = to_categorical(idx1, num_clss).squeeze()
                 pairs += [[x[z1], x[z2]]]
-                label_diff += [0]
+                label_diff += [[1,0]]
                 label_clss += [[l1, l2]]
     return pairs, label_diff, label_clss
 
