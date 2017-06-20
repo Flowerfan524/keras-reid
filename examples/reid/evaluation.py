@@ -12,10 +12,10 @@ def compute_ap(good_idx, junk_idx, pred_idx):
     j = 0
     good_now = 0
     njunk = 0
-    for idx in pred_idx:
+    for i,idx in enumerate(pred_idx):
         flag = 0
         if idx in good_idx:
-            cmc[pred_idx.shape[0]-njunk-1:] = 1
+            cmc[i-njunk:] = 1
             flag = 1
             good_now += 1
         elif idx in junk_idx:
@@ -49,8 +49,10 @@ ap = np.zeros(cos_dist.shape[0])
 
 for idx,cls in enumerate(query_data['label']):
     print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
-    good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0], np.where(test_data['cam'] != query_data['cam'][idx])[0])
-    junk_idx1 = np.intersect1d(np.where(test_data['label'] == cls)[0], np.where(test_data['cam'] == query_data['cam'][idx])[0])
+    good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0], 
+            np.where(test_data['cam'] != query_data['cam'][idx])[0])
+    junk_idx1 = np.intersect1d(np.where(test_data['label'] == cls)[0],
+            np.where(test_data['cam'] == query_data['cam'][idx])[0])
     junk_idx2 = np.where(test_data['label'] == -1)[0]
     junk_idx = np.union1d(junk_idx1, junk_idx2)
     pred_idx = np.argsort(cos_dist[idx,:])
