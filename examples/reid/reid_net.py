@@ -1,4 +1,4 @@
-from keras.applications.vgg16 import VGG16
+from keras.applications import vgg16, inception_v3, resnet50, xception
 from keras.models import Model
 from keras.layers import Dense, Dropout, Input, Lambda, Flatten
 from keras.optimizers import RMSprop, SGD
@@ -8,7 +8,7 @@ from keras.utils import to_categorical
 
 def euclidean_distance(vects):
     x, y = vects
-    return K.prod(K.stack([x, y],axis=1),axis=1)
+    return K.square(x- y)
 
 def eucl_dist_output_shape(shapes):
     shape1, shape2 = shapes
@@ -26,22 +26,26 @@ def contrastive_loss(y_true, y_pred):
     return K.mean(y_true * K.square(y_pred) +
                   (1 - y_true) * K.square(K.maximum(margin - y_pred, 0)))
 
-def reid_net(include_top = True, input_shape = None):
-    vgg16 = VGG16(include_top=False,input_shape=input_shape)
-#    for layer in vgg16.layers:
-#        layer.trainable = False
-    x = vgg16.output
-    x = Flatten(name='flatten')(x)
-    x = Dense(1024, activation = 'relu', name='fc1')(x)
-    feature = Dense(1024, activation = 'relu', name='fc2')(x)
-    base_model = Model(vgg16.input,feature)
-#    feature = Dropout(0.2,name='drop2')(x)
-#    if not include_top:
-#        return base_model
-#    feature = Dropout(0.2, name='drop1')(feature)
-    cls_out = Dense(751,activation='softmax', name='softmax')(feature)
-    cls_model = Model(vgg16.input,cls_out)
+def reid_net(base_model='vgg16',include_top = True, input_shape = None):
+    if base_model is 'vgg16':
+        vgg = vgg16.VGG16(include_top=True,weights='imagenet',input_shape=input_shape)
+        #x = vgg.output
+        #x = Flatten(name='flatten')(x)
+        #x = Dense(1024, activation = 'relu', name='fc1')(x)
+        #x = Dense(1024, activation = 'relu', name='fc2')(x)
+        base_model = Model(vgg.input,vgg.get_layer('fc2').output)
+    elif base_model is 'inception':
+        inception = inception_v3.InceptionV3(include_top=True, weights='imagenet',input_shape=input_shape)
+        base_model = Model(inputs=inception.input, outputs=inception.get_layer('avg_pool').output)
+    elif base_model is 'resnet50':
+        resnet = resnet50.ResNet50(include_top=True, weights='imagenet',input_shape=input_shape)
+        base_model = Model(inputs=resnet.input, outputs=resnet.layers[-2].output)
 
+    if not include_top:
+        return base_model
+    feature = base_model.output
+    cls_out = Dense(751,activation='softmax', name='softmax')(feature)
+    cls_model = Model(base_model.input,cls_out)
     input1 = Input(shape=input_shape)
     input2 = Input(shape=input_shape)
     fea1,fea2 = base_model(input1), base_model(input2)
