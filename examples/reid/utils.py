@@ -5,18 +5,17 @@ from keras.utils import to_categorical
 from keras.preprocessing.image import ImageDataGenerator as IDG
 
 
-def extract_data_from_lst(lst,input_shape,crop_shape=None,seed=None, preprocess=True):
+def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True):
     x = []
     for file in lst:
-        x += [read_input_img(file,input_shape,crop_shape,seed)]
+        x += [read_input_img(file,input_shape,crop_shape)]
     x = np.array(x)
     if preprocess:
         x = img_process(x)
     return x
 
-def crop_image(x,crop_shape, seed):
+def crop_image(x,crop_shape):
     assert x.shape[0] > crop_shape[0] and x.shape[1] > crop_shape[1], 'error crop size'
-    np.random.seed(seed)
     shift_x = np.random.randint(x.shape[0]-crop_shape[0])
     shift_y = np.random.randint(x.shape[1]-crop_shape[1])
     return x[shift_x:shift_x+crop_shape[0],shift_y:shift_y+crop_shape[1],:]
@@ -39,13 +38,13 @@ def generate_train_lst(dire):
 
     return np.array(x),np.array(y),np.array(cam)
 
-def read_input_img(file,shape=(224,224,3),crop_shape=None,seed=None):
+def read_input_img(file,shape=(224,224,3),crop_shape=None):
     im = image.load_img(file, target_size=(shape[0],shape[1],))
     im = image.img_to_array(im)
     if crop_shape is None:
         return im
     else:
-        return crop_image(im,crop_shape=crop_shape,seed=seed)
+        return crop_image(im,crop_shape=crop_shape)
 
 def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None,neg_times=1):
     f = np.load(lst_files)
@@ -65,10 +64,9 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None,n
         num_batches = num_recs // batch_size
         for bid in range(num_batches):
             batch_indices = indices[bid * batch_size:(bid + 1) * batch_size]
-            seed = np.random.randint(0,100,1)[0]
-            Xleft = process_images([pairs[i][0] for i in batch_indices], seed, datagen_left,
+            Xleft = process_images([pairs[i][0] for i in batch_indices], datagen_left,
                     img_cache,input_shape,crop_shape)
-            Xright = process_images([pairs[i][1] for i in batch_indices], seed, datagen_right,
+            Xright = process_images([pairs[i][1] for i in batch_indices], datagen_right,
                     img_cache,input_shape,crop_shape)
             Y_diff = np.array([y_diff[i] for i in batch_indices])
             Y_cls1 = np.array([y_clss[i][0] for i in batch_indices])
@@ -76,20 +74,19 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None,n
             yield [Xleft, Xright], [Y_diff, Y_cls1, Y_cls2]
         epoch += 1
 
-def cache_read(img_name, img_cache,input_shape,crop_shape,seed):
+def cache_read(img_name, img_cache,input_shape,crop_shape):
     if img_name not in img_cache:
-        img = read_input_img(img_name,input_shape,crop_shape,seed)
+        img = read_input_img(img_name,input_shape,crop_shape)
         img_cache[img_name] = img
     return img_cache[img_name]
 
-def process_images(img_names, seed, datagen, img_cache,input_shape,crop_shape):
-    np.random.seed(seed)
+def process_images(img_names, datagen, img_cache,input_shape,crop_shape):
     if crop_shape is None:
         X = np.zeros((len(img_names), input_shape[0], input_shape[1], 3))
     else:
         X = np.zeros((len(img_names), crop_shape[0], crop_shape[1], 3))
     for idx, img_name in enumerate(img_names):
-        img = cache_read(img_name, img_cache,input_shape,crop_shape,seed)
+        img = cache_read(img_name, img_cache,input_shape,crop_shape)
         X[idx] = datagen.random_transform(img)
     X[:,:,:,0] -= 97.8286
     X[:,:,:,1] -= 99.0468
