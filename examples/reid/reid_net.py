@@ -1,7 +1,6 @@
 from keras.applications import vgg16, inception_v3, resnet50, xception
 from keras.models import Model
 from keras.layers import Dense, Dropout, Input, Lambda, Flatten
-from keras.optimizers import RMSprop, SGD
 from keras import backend as K
 from keras.utils import to_categorical
 
@@ -54,8 +53,4 @@ def reid_net(base_model='vgg16',include_top = True, input_shape = None):
                       output_shape=eucl_dist_output_shape,name='distance')([fea1, fea2])
     diff_out = Dense(2, activation='softmax', name='loss_diff')(distance)
     model = Model(inputs = [input1, input2], outputs = [diff_out,cls1,cls2])
-    rms = RMSprop()
-    sgd = SGD(lr=0.001, momentum=0.9, decay=0.0005)
-    model.compile(loss=['categorical_crossentropy','categorical_crossentropy','categorical_crossentropy'],
-            optimizer=sgd,loss_weights=[0.5,0.5,0.5],metrics=['accuracy'])
     return model

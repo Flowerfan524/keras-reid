@@ -128,7 +128,7 @@ def create_pairs(x,y,neg_times=1):
             z1, z2 = digit_indices[d][i], digit_indices[d][dn]
             l1 = to_categorical(d, num_clss).squeeze()
             pairs += [[x[z1], x[z2]]]
-            label_diff += [[0,1]]
+            label_diff += [[1,0]]
             label_clss += [[l1, l1]]
             incs = np.random.randint(1, num_clss, neg_size)
             dns = (incs + d) % num_clss
@@ -137,7 +137,7 @@ def create_pairs(x,y,neg_times=1):
                 z1, z2 = digit_indices[d][i],digit_indices[idx1][idx2]
                 l2 = to_categorical(idx1, num_clss).squeeze()
                 pairs += [[x[z1], x[z2]]]
-                label_diff += [[1,0]]
+                label_diff += [[0,1]]
                 label_clss += [[l1, l2]]
     return pairs, label_diff, label_clss
 
