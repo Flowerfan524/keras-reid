@@ -46,29 +46,30 @@ def read_input_img(file,shape=(224,224,3),crop_shape=None):
     else:
         return crop_image(im,crop_shape=crop_shape)
 
-def gen_pairs(y, label_set, batch_size, pos_ratio, neg_ratio):
+def gen_pairs(y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
     id_left = np.random.randint(0,len(y),batch_size).tolist()
-    num_clss = len(clss)
+    num_clss = len(label_set)
     id_right = []
-    y_diff, y_cls1, y_cls2 = [],[],[]
+    y_diff,y_cls1,y_cls2 = [],[],[]
     threshold = pos_ratio/(pos_ratio + neg_ratio)
     for idx in id_left:
         v = np.random.rand()
-        ln = y[idx]
+        ln = kmap[y[idx]]
+        y_cls1 += [to_categorical(ln,num_clss).squeeze()]
         if v > threshold:
-            ln = (np.random.ranint(1,num_clss) + ln) % num_clss
-            y_cls1 = to_categorical(idx1, num_clss).squeeze()
+            ln = (np.random.randint(1,num_clss) + ln) % num_clss
             y_diff += [[0,1]]
         else:
             y_diff += [[1,0]]
         rn = np.random.randint(len(label_set[ln]))
         id_right += [label_set[ln][rn]]
+        y_cls2 += [to_categorical(ln,num_clss).squeeze()]
     return id_left, id_right, y_diff
 
 
 
 def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
-    pos_ratio, neg_ratio = 1,1
+    pos_ratio, neg_ratio = 1,3
     pos_limit, neg_limit = 1,4
     pos_factor, neg_factor = 1,1.01
     img_cache = {}
@@ -76,28 +77,29 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
     datagen_left = IDG(**datagen_args)
     datagen_right = IDG(**datagen_args)
     f = np.load(lst_files)
-    lst,y_train = f['lst'],f['label']
-    lb = LB()
-    lb.fit(y_train)
-    y_train = lb.transform(y_train)
-    num_batches = len(y_train) // batch_size + 1
-    clss = np.unique(y_train)
+    lst,y = f['lst'],f['label']
+    num_batches = len(y) // batch_size + 1
+    clss = np.unique(y)
     num_clss = clss.shape[0]
+    kmap = { v:k for k,v in enumerate(clss)}
     label_set = [np.where(y == c)[0] for c in clss]
+    step = 0
     while True:
+        step += 1
         #loop per epoch
         for bid in range(num_batches):
-            id_left, id_right, y_diff = gen_pairs(y_train, label_set, batch_size,pos_ratio, neg_ratio)
+            id_left, id_right, y_diff = gen_pairs(y,kmap,label_set, batch_size,pos_ratio, neg_ratio)
             Xleft = process_images([lst[i] for i in id_left], datagen_left,
                     img_cache,input_shape,crop_shape)
             Xright = process_images([lst[i] for i in id_right], datagen_right,
                     img_cache,input_shape,crop_shape)
             Y_diff = np.array(y_diff)
-            Y_cls1 = np.array([to_categorical(y[i],num_clss).squeeze() for i in id_left])
-            Y_cls2 = np.array([to_categorical(y[i],num_clss).squeeze() for i in id_right])
+            Y_cls1 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_left])
+            Y_cls2 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_right])
             yield [Xleft, Xright], [Y_diff, Y_cls1, Y_cls2]
-            pos_ratio = min(pos_ratio * pos_factor, pos_limit)
-            neg_ratio = min(neg_ratio * neg_factor, neg_limit)
+            if step % 20 is 0:
+                pos_ratio = min(pos_ratio * pos_factor, pos_limit)
+                neg_ratio = min(neg_ratio * neg_factor, neg_limit)
 
 def cache_read(img_name, img_cache,input_shape,crop_shape):
     if img_name not in img_cache:
