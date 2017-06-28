@@ -2,12 +2,13 @@ from keras.applications import resnet50
 from keras.optimizers import RMSprop, SGD
 from keras.callbacks import ModelCheckpoint
 from sklearn.preprocessing import LabelBinarizer as LB
+from keras.preprocessing.image import ImageDataGenerator as IDG
 from utils import image_quintuple_generator as iqg
 from keras.layers import Dense,Input,Lambda
 from keras.models import Model
 import utils
 import numpy as np
-
+from keras import backend as  K
 
 
 def image_triple_generator(lst_files,input_shape,batch_size,crop_shape=None):
@@ -30,10 +31,10 @@ def image_triple_generator(lst_files,input_shape,batch_size,crop_shape=None):
         step += 1
         #loop per epoch
         for bid in range(num_batches):
-            id_left, id_right, y_diff = gen_pairs(y,kmap,label_set, batch_size,pos_ratio, neg_ratio)
-            Xleft = process_images([lst[i] for i in id_left], datagen_left,
+            id_left, id_right, y_diff = utils.gen_pairs(y,kmap,label_set, batch_size,pos_ratio, neg_ratio)
+            Xleft = utils.process_images([lst[i] for i in id_left], datagen_left,
                     img_cache,input_shape,crop_shape)
-            Xright = process_images([lst[i] for i in id_right], datagen_right,
+            Xright = utils.process_images([lst[i] for i in id_right], datagen_right,
                     img_cache,input_shape,crop_shape)
             Y_diff = np.array(y_diff)
             yield [Xleft, Xright], Y_diff
@@ -61,6 +62,7 @@ lst_file = '../data/train.lst.npz'
 resnet = resnet50.ResNet50(weights='imagenet')
 feature_model = Model(resnet.input,resnet.layers[-2].output)
 input1 = Input(shape=crop_shape,name='input1')
+input2 = Input(shape=crop_shape,name='input2')
 fea1 = feature_model(input1)
 fea2 = feature_model(input2)
 distance = Lambda(euclidean_distance,
@@ -83,7 +85,7 @@ feature = feature_model.predict(query_data)
 np.savez('../data/query_feature',feature=feature,label=f['label'],cam=f['cam'])
 
 del query_data, data
-f = np.load(test_lst)
+f = np.load(test_file)
 test_lst = f['lst']
 test_data = utils.extract_data_from_lst(test_lst,input_shape=crop_shape)
 feature = feature_model.predict(test_data)
