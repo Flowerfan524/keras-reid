@@ -39,7 +39,7 @@ feature = feature_model.predict(query_data)
 np.savez('../data/query_feature',feature=feature,label=f['label'],cam=f['cam'])
 
 del query_data, feature
-f = np.load(test_lst)
+f = np.load(test_file)
 test_lst = f['lst']
 test_data = utils.extract_data_from_lst(test_lst,input_shape=crop_shape)
 feature = feature_model.predict(test_data)
