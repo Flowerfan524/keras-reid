@@ -69,7 +69,7 @@ def gen_pairs(y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
 
 
 def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
-    pos_ratio, neg_ratio = 1,3
+    pos_ratio, neg_ratio = 1,1
     pos_limit, neg_limit = 1,4
     pos_factor, neg_factor = 1,1.01
     img_cache = {}
@@ -97,7 +97,7 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
             Y_cls1 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_left])
             Y_cls2 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_right])
             yield [Xleft, Xright], [Y_diff, Y_cls1, Y_cls2]
-            if step % 20 is 0:
+            if step % 10 is 0:
                 pos_ratio = min(pos_ratio * pos_factor, pos_limit)
                 neg_ratio = min(neg_ratio * neg_factor, neg_limit)
 
