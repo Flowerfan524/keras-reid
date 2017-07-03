@@ -1,35 +1,71 @@
-from keras.applications import resnet50
+from keras.applications import resnet50, vgg16
 from keras.optimizers import RMSprop, SGD
 from keras.callbacks import ModelCheckpoint
 from sklearn.preprocessing import LabelBinarizer as LB
+from keras.utils import to_categorical
 from keras.layers import Dense,Input
 from keras.models import Model
 import utils
 import numpy as np
+import image_processing as ipo
 
-f = np.load('../data/train.lst.npz')
+train_lst_file = '../data/train.lst.npz'
+f = np.load(train_lst_file)
 train_lst, train_y = f['lst'],f['label']
 input_shape = (256,256,3)
 crop_shape = (224,224,3)
 batch_size = 16
+epochs = 15
+
+def read_img(lst_file,input_shape,crop_shape):
+    X = np.zeros((len(lst_file),)+crop_shape)
+    for idx,lst in enumerate(lst_file):
+        X[idx] = ipo.get_img(lst,(input_shape[0],input_shape[1]),(crop_shape[0],crop_shape[1]))
+    X[:,:,:,0] -= 105.606
+    X[:,:,:,1] -= 99.0468
+    X[:,:,:,2] -= 97.8286
+    return X
+
+def gen_data(lst_file,batch_size,input_shape,crop_shape=None):
+    f = np.load(lst_file)
+    lst,y = f['lst'],f['label']
+    num_ins = len(y)
+    clss = np.unique(y)
+    num_clss = clss.shape[0]
+    kmap = {v:k for k,v in enumerate(clss)}
+    while True:
+        indices = np.random.randint(0,num_ins,batch_size)
+        X = read_img(lst[indices],input_shape,crop_shape)
+        label = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in indices])
+        yield X,label
 
 resnet = resnet50.ResNet50(weights='imagenet')
+#vgg = vgg16.VGG16(weights='imagenet')
 feature_model = Model(resnet.input,resnet.layers[-2].output)
 cls_out = Dense(751,activation='softmax',name='y_clss')
 input1 = Input(shape=crop_shape,name='input1') 
 fea1 = feature_model(input1)
 cls1 = cls_out(fea1)
 model = Model(inputs=input1,outputs=cls1)
-sgd = SGD(lr=0.001,momentum=0.9,decay=0.0005)
+#sgd = SGD(lr=0.001,momentum=0.9,decay=0.0005)
+sgd = SGD()
 model.compile(loss='categorical_crossentropy',optimizer=sgd,metrics=['accuracy'])
-check_pointer = ModelCheckpoint(filepath='../models/indentify.weight.{epoch:02d}.hdf5',verbose=1,save_best_only=False,save_weights_only=True)
-lb = LB()
-lb.fit(train_y)
-y = lb.transform(train_y)
-data = utils.extract_data_from_lst(train_lst,input_shape,crop_shape)
-model.fit(x=data,y=y,epochs=10,batch_size=batch_size,callbacks=[check_pointer])
+check_pointer = ModelCheckpoint(filepath='../models/identify.weight.{epoch:02d}.hdf5',verbose=1,save_best_only=False,save_weights_only=True)
+#lb = LB()
+#lb.fit(train_y)
+#y = lb.transform(train_y)
+#data = utils.extract_data_from_lst(train_lst,input_shape,crop_shape)
+#model.fit(x=data,y=y,epochs=epochs,batch_size=batch_size,callbacks=[check_pointer])
+gen = gen_data(train_lst_file,32,input_shape,crop_shape)
+model.fit_generator(gen,steps_per_epoch=800,epochs=10,callbacks=[check_pointer])
 
-del data
+#model.load_weights('../models/identify.weight.00.hdf5')
+
+#sgd = SGD(lr=0.0001,momentum=0.9,decay=0.0005)
+#model.compile(loss='categorical_crossentropy',optimizer=sgd,metrics=['accuracy'])
+#model.fit(x=data,y=y,epochs=5,batch_size=batch_size,callbacks=[check_pointer])
+
+#feature_model = Model(model.input,model.layers[-1].input)
 query_file = '../data/query.lst.npz'
 test_file = '../data/test.lst.npz'
 f  = np.load(query_file)
@@ -37,7 +73,6 @@ query_lst = f['lst']
 query_data =  utils.extract_data_from_lst(query_lst,input_shape=crop_shape)
 feature = feature_model.predict(query_data)
 np.savez('../data/query_feature',feature=feature,label=f['label'],cam=f['cam'])
-
 del query_data, feature
 f = np.load(test_file)
 test_lst = f['lst']
