@@ -1,24 +1,35 @@
 import numpy as np
+from PIL import Image
 import os
 from keras.preprocessing import image
 from keras.utils import to_categorical
 from keras.preprocessing.image import ImageDataGenerator as IDG
 from sklearn.preprocessing import LabelBinarizer as LB
 
+
 def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True):
     x = []
     for file in lst:
-        x += [read_input_img(file,input_shape,crop_shape)]
+        im = read_input_img(file,input_shape,crop_shape)
+        x += [np.asarray(im,dtype='float32')]
     x = np.array(x)
     if preprocess:
         x = img_process(x)
     return x
 
-def crop_image(x,crop_shape):
-    assert x.shape[0] > crop_shape[0] and x.shape[1] > crop_shape[1], 'error crop size'
-    shift_x = np.random.randint(x.shape[0]-crop_shape[0])
-    shift_y = np.random.randint(x.shape[1]-crop_shape[1])
-    return x[shift_x:shift_x+crop_shape[0],shift_y:shift_y+crop_shape[1],:]
+def crop_image(im,crop_shape):
+    assert im.width > crop_shape[0] and im.height > crop_shape[1], 'error crop size'
+    a = np.random.randint(im.width-crop_shape[0]+1)
+    b = np.random.randint(im.height-crop_shape[1]+1)
+    c = a + crop_shape[0]
+    d = b + crop_shape[1]
+    return im.crop((a,b,c,d))
+
+def random_flip(im,seed=None):
+    a = np.random.rand()
+    if a > 0.5:
+        im = im.rotate(180)
+    return im
 
 def generate_train_lst(dire):
     x = []
@@ -38,16 +49,19 @@ def generate_train_lst(dire):
 
     return np.array(x),np.array(y),np.array(cam)
 
-def read_input_img(file,shape=(224,224,3),crop_shape=None):
-    im = image.load_img(file, target_size=(shape[0],shape[1],))
-    im = image.img_to_array(im)
+def read_input_img(file,shape,crop_shape=None):
+    im = Image.open(file)
+    im = random_flip(im)
+    im = im.resize((shape[0],shape[1]))
     if crop_shape is None:
         return im
-    else:
-        return crop_image(im,crop_shape=crop_shape)
+    im = crop_image(im,crop_shape=crop_shape)
+    return im
 
-def gen_pairs(y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
-    id_left = np.random.randint(0,len(y),batch_size).tolist()
+
+def gen_pairs(s,bid, kmap, label_set, batch_size, pos_ratio, neg_ratio):
+    #id_left = np.random.randint(0,len(y),batch_size).tolist()
+    id_left = s[bid*batch_size:(bid+1)*batch_size]
     num_clss = len(label_set)
     id_right = []
     y_diff,y_cls1,y_cls2 = [],[],[]
@@ -73,33 +87,28 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
     pos_limit, neg_limit = 1,4
     pos_factor, neg_factor = 1,1.01
     img_cache = {}
-    datagen_args = dict(horizontal_flip = True)
-    datagen_left = IDG(**datagen_args)
-    datagen_right = IDG(**datagen_args)
     f = np.load(lst_files)
     lst,y = f['lst'],f['label']
-    num_batches = len(y) // batch_size + 1
-    clss = np.unique(y)
+    num_ins = len(y)
+    num_batches = num_ins // batch_size + 1
     num_clss = clss.shape[0]
+    clss = np.unique(y)
     kmap = { v:k for k,v in enumerate(clss)}
     label_set = [np.where(y == c)[0] for c in clss]
-    step = 0
+    s = np.arange(num_ins)
     while True:
-        step += 1
+        s=np.random.permutation(s)
         #loop per epoch
         for bid in range(num_batches):
-            id_left, id_right, y_diff = gen_pairs(y,kmap,label_set, batch_size,pos_ratio, neg_ratio)
-            Xleft = process_images([lst[i] for i in id_left], datagen_left,
-                    img_cache,input_shape,crop_shape)
-            Xright = process_images([lst[i] for i in id_right], datagen_right,
-                    img_cache,input_shape,crop_shape)
+            id_left, id_right, y_diff = gen_pairs(s,bid,y,kmap,label_set, batch_size,pos_ratio, neg_ratio)
+            Xleft = process_images([lst[i] for i in id_left],img_cache,input_shape,crop_shape)
+            Xright = process_images([lst[i] for i in id_right],img_cache,input_shape,crop_shape)
             Y_diff = np.array(y_diff)
             Y_cls1 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_left])
             Y_cls2 = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in id_right])
             yield [Xleft, Xright], [Y_diff, Y_cls1, Y_cls2]
-            if step % 10 is 0:
-                pos_ratio = min(pos_ratio * pos_factor, pos_limit)
-                neg_ratio = min(neg_ratio * neg_factor, neg_limit)
+            pos_ratio = min(pos_ratio * pos_factor, pos_limit)
+            neg_ratio = min(neg_ratio * neg_factor, neg_limit)
 
 def cache_read(img_name, img_cache,input_shape,crop_shape):
     if img_name not in img_cache:
@@ -107,28 +116,28 @@ def cache_read(img_name, img_cache,input_shape,crop_shape):
         img_cache[img_name] = img
     return img_cache[img_name]
 
-def process_images(img_names, datagen, img_cache,input_shape,crop_shape):
+def process_images(img_names, img_cache,input_shape,crop_shape):
     if crop_shape is None:
         X = np.zeros((len(img_names), input_shape[0], input_shape[1], 3))
     else:
         X = np.zeros((len(img_names), crop_shape[0], crop_shape[1], 3))
     for idx, img_name in enumerate(img_names):
-        img = cache_read(img_name, img_cache,input_shape,crop_shape)
-        X[idx] = datagen.random_transform(img)
-    X[:,:,:,0] -= 97.8286
+        im = cache_read(img_name, img_cache,input_shape,crop_shape)
+        X[idx] = np.asarray(im,dtype='float32')
+    X[:,:,:,2] -= 97.8286
     X[:,:,:,1] -= 99.0468
-    X[:,:,:,2] -= 105.606
+    X[:,:,:,0] -= 105.606
 
     return X
 
 
-def img_process(imgs, shift = (97.8286,99.0468,105.606)):
-    imgs[:,:,:,0] -= shift[0]
+def img_process(imgs, shift = (97.8286,99.046,105.606)):
+    imgs[:,:,:,0] -= shift[2]
     imgs[:,:,:,1] -= shift[1]
-    imgs[:,:,:,2] -= shift[2]
-   # imgs[:,:,:,0] /= 255
-   # imgs[:,:,:,1] /= 255
-   # imgs[:,:,:,2] /= 255
+    imgs[:,:,:,2] -= shift[0]
+    #imgs[:,:,:,0] /= 255
+    #imgs[:,:,:,1] /= 255
+    #imgs[:,:,:,2] /= 255
     return imgs
 
 
