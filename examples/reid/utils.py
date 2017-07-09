@@ -28,7 +28,7 @@ def crop_image(im,crop_shape):
 def random_flip(im,seed=None):
     a = np.random.rand()
     if a > 0.5:
-        im = im.rotate(180)
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
     return im
 
 def generate_train_lst(dire):
@@ -59,9 +59,9 @@ def read_input_img(file,shape,crop_shape=None):
     return im
 
 
-def gen_pairs(s,bid, kmap, label_set, batch_size, pos_ratio, neg_ratio):
-    #id_left = np.random.randint(0,len(y),batch_size).tolist()
-    id_left = s[bid*batch_size:(bid+1)*batch_size]
+def gen_pairs(s,bid,y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
+    id_left = np.random.randint(0,len(y),batch_size).tolist()
+    #id_left = s[bid*batch_size:(bid+1)*batch_size]
     num_clss = len(label_set)
     id_right = []
     y_diff,y_cls1,y_cls2 = [],[],[]
@@ -91,8 +91,8 @@ def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
     lst,y = f['lst'],f['label']
     num_ins = len(y)
     num_batches = num_ins // batch_size + 1
-    num_clss = clss.shape[0]
     clss = np.unique(y)
+    num_clss = clss.shape[0]
     kmap = { v:k for k,v in enumerate(clss)}
     label_set = [np.where(y == c)[0] for c in clss]
     s = np.arange(num_ins)

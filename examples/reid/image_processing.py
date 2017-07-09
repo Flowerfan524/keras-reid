@@ -16,7 +16,7 @@ def random_flip(im,seed=None):
     np.random.seed(seed)
     a  = np.random.rand()
     if a > 0.5:
-        im = im.rotate(180)
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
     return im
 
 def img_to_array(im):
