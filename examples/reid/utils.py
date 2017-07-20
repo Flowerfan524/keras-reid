@@ -81,6 +81,24 @@ def gen_pairs(s,bid,y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
     return id_left, id_right, y_diff
 
 
+def image_base_generator(lst_file,batch_size,input_shape,crop_shape=None):
+    f = np.load(lst_file)
+    lst,y = f['lst'],f['label']
+    num_ins = len(y)
+    clss = np.unique(y)
+    num_clss = clss.shape[0]
+    num_batchs = num_ins // batch_size
+    kmap = {v:k for k,v in enumerate(clss)}
+    s = np.arange(num_ins)
+    img_cache = {}
+    while True:
+        s = np.random.permutation(s)
+        for batch in range(num_batchs):
+            indices = s[batch*batch_size:(batch+1)*batch_size]
+            X = process_images(lst[indices],img_cache,input_shape,crop_shape)
+            label = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in indices])
+            yield X,label
+
 
 def image_quintuple_generator(lst_files,input_shape,batch_size,crop_shape=None):
     pos_ratio, neg_ratio = 1,1
