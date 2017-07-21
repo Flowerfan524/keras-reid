@@ -40,9 +40,8 @@ def read_img(lst_file,input_shape,crop_shape):
     X[:,:,:,2] -= 97.8286
     return X
 
-def gen_data(lst_file,batch_size,input_shape,crop_shape=None):
-    f = np.load(lst_file)
-    lst,y = f['lst'],f['label']
+def gen_data(data,batch_size,input_shape,crop_shape=None):
+    lst,y = data['lst'],data['label']
     num_ins = len(y)
     clss = np.unique(y)
     num_clss = clss.shape[0]
@@ -56,10 +55,11 @@ def gen_data(lst_file,batch_size,input_shape,crop_shape=None):
             X = read_img(lst[indices],input_shape,crop_shape)
             label = np.array([to_categorical(kmap[y[i]],num_clss).squeeze() for i in indices])
             yield X,label
+
 base_model = resnet50.ResNet50(weights='imagenet',include_top=True)
 feature_model = Model(base_model.input,base_model.layers[-1].input)
 cls_out = Dense(751,activation='softmax',name='y_clss')
-input1 = Input(shape=crop_shape,name='input1') 
+input1 = Input(shape=crop_shape,name='input1')
 fea1 = feature_model(input1)
 #drop1 = Dropout(0.1,name='drop1')(fea1)
 cls1 = cls_out(fea1)
@@ -92,6 +92,3 @@ test_lst = f['lst']
 test_data = utils.extract_data_from_lst(test_lst,input_shape=crop_shape)
 feature = feature_model.predict(test_data)
 np.savez('../data/test_feature',feature=feature,label=f['label'],cam=f['cam'])
-
-
-
