@@ -10,11 +10,10 @@ from sklearn.preprocessing import LabelBinarizer as LB
 def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True):
     x = []
     for file in lst:
-        im = read_input_img(file,input_shape,crop_shape)
+        im = read_input_img(file,input_shape,crop_shape,flip)
         x += [np.asarray(im,dtype='float32')]
     x = np.array(x)
-    if preprocess:
-        x = img_process(x)
+    x = reduce_mean(x)
     return x
 
 def crop_image(im,crop_shape):
@@ -49,9 +48,10 @@ def generate_train_lst(dire):
 
     return np.array(x),np.array(y),np.array(cam)
 
-def read_input_img(file,shape,crop_shape=None):
+def read_input_img(file,shape,crop_shape=None,flip=None):
     im = Image.open(file)
-    im = random_flip(im)
+    if flip is not None:
+        im = random_flip(im)
     im = im.resize((shape[0],shape[1]))
     if crop_shape is None:
         return im
@@ -60,8 +60,8 @@ def read_input_img(file,shape,crop_shape=None):
 
 
 def gen_pairs(s,bid,y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
-    id_left = np.random.randint(0,len(y),batch_size).tolist()
-    #id_left = s[bid*batch_size:(bid+1)*batch_size]
+    #id_left = np.random.randint(0,len(y),batch_size).tolist()
+    id_left = s[bid*batch_size:(bid+1)*batch_size]
     num_clss = len(label_set)
     id_right = []
     y_diff,y_cls1,y_cls2 = [],[],[]
