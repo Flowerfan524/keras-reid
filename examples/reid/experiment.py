@@ -12,7 +12,7 @@ name_model2 = 'resnet50'
 
 params1 = {
     'input_shape': (336,336,3),
-    'crop_shape': (299,299,3)
+    'crop_shape': (299,299,3),
     'epochs': 10,
     'steps_per_epoch': 1500,
     'batch_size': 32,
@@ -20,13 +20,13 @@ params1 = {
 
 params2 = {
     'input_shape': (256,256,3),
-    'crop_shape': (224,224,3)
+    'crop_shape': (224,224,3),
     'epochs': 10,
     'steps_per_epoch': 1500,
     'batch_size': 32,
 }
 
-train_lst = './data/train.lst.npz'
+train_lst = '../data/train.lst.npz'
 
 def split_data(train_lst, ratio=0.2):
     f = np.load(train_lst)
@@ -39,10 +39,10 @@ def split_data(train_lst, ratio=0.2):
     for cls in clss:
         indices = np.where(y == cls)[0]
         np.random.shuffle(indices)
-        mid_idx = np.ceil(indices.shape[0] * ratio)
+        mid_idx = int(np.ceil(indices.shape[0] * ratio))
         lst_train += list(lst[indices[:mid_idx]])
         lst_untrain += list(lst[indices[mid_idx:]])
-        y_train += list(y[indices[:midx_idx]])
+        y_train += list(y[indices[:mix_idx]])
         y_untrain += list(y[indices[mid_idx:]])
     np.savez('../data/train_lst', lst=lst_train, label=y_train)
     np.savez('../data/untrain_lst', lst=lst_untrain, label=y_untrain)

@@ -2,7 +2,7 @@ from keras.applications import vgg16, xception, resnet50
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout
 from keras.optimizers import SGD
-from utils import image+base_generator as ibg
+from utils import image_base_generator as ibg
 
 
 def get_model(model_name,input_shape=(224,224,3)):
