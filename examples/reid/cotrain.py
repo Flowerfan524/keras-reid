@@ -31,14 +31,14 @@ def sel_idx(score, y, ratio=1):
 
 
 
-def cotrain(train_lst,untrain_lst,mname1,mname2,params):
+def cotrain(train_lst,untrain_lst,mname1,mname2,params1,params2):
     train_data = np.load(train_lst)
     untrain_data = np.load(untrain_lst)
     model1 = model.get_model(model_name=mname1)
     model2 = model.get_model(model_name=mname2)
     optimizer=SGD(lr=0.001,momentum=0.9,decay=0.005)
-    model.train_model(model1,train_data,optimizer,params)
-    model.train_model(model2,train_data,optimizer,params)
+    model.train_model(model1,train_data,optimizer,params1)
+    model.train_model(model2,train_data,optimizer,params2)
     clss = np.unique(train_data['label'])
     kmap = {v:k for k,v in enumerate(clss)}
     X_untrain = utils.extract_data_from_lst(untrain_data['lst'])
@@ -65,8 +65,10 @@ def cotrain(train_lst,untrain_lst,mname1,mname2,params):
         train1 = {'lst':lst1, 'label':y_train1}
         train2 = {'lst':lst2, 'label':y_trian2}
 
-        model.train_model(model1,train1,optimizer,params)
-        model.train_model(model2,train2,optimizer,params)
+        model1 = model.get_model(model_name=mname1)
+        model2 = model.get_model(model_name=mname2)
+        model.train_model(model1,train1,optimizer,params1)
+        model.train_model(model2,train2,optimizer,params2)
 
         # remove add untrain lst
         add_idx = add_idx1 + add_idx2

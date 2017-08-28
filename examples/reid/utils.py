@@ -81,9 +81,8 @@ def gen_pairs(s,bid,y, kmap, label_set, batch_size, pos_ratio, neg_ratio):
     return id_left, id_right, y_diff
 
 
-def image_base_generator(lst_file,batch_size,input_shape,crop_shape=None):
-    f = np.load(lst_file)
-    lst,y = f['lst'],f['label']
+def image_base_generator(data,batch_size,input_shape,crop_shape=None):
+    lst,y = data['lst'],data['label']
     num_ins = len(y)
     clss = np.unique(y)
     num_clss = clss.shape[0]

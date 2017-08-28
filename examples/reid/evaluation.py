@@ -34,13 +34,12 @@ def compute_ap(good_idx, junk_idx, pred_idx):
     if good_now < good:
         raise 'something wrong'
 
-def evaluate(f1,f2,y1,y2,cam1,cam2):
-    cos_dist = cdist(f1, f2, metric='cosine')
+def evaluate(cos_dist,y1,y2,cam1,cam2):
     cmc = np.zeros(shape=cos_dist.shape)
     ap = np.zeros(cos_dist.shape[0])
     for idx,cls in enumerate(y1):
         print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
-        good_idx = np.intersect1d(np.where(y2 == cls)[0], 
+        good_idx = np.intersect1d(np.where(y2 == cls)[0],
                 np.where(cam2[idx] != cam1[idx])[0])
         junk_idx1 = np.intersect1d(np.where(y2 == cls)[0],
                 np.where(cam2[idx] == cam1[idx])[0])
@@ -71,7 +70,7 @@ if __name__ == '__main__':
 
     for idx,cls in enumerate(query_data['label']):
         #print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
-        good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0], 
+        good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0],
                 np.where(test_data['cam'] != query_data['cam'][idx])[0])
         junk_idx1 = np.intersect1d(np.where(test_data['label'] == cls)[0],
                 np.where(test_data['cam'] == query_data['cam'][idx])[0])
@@ -79,6 +78,6 @@ if __name__ == '__main__':
         junk_idx = np.union1d(junk_idx1, junk_idx2)
         pred_idx = np.argsort(cos_dist[idx,:])
         ap[idx],cmc[idx,:] = compute_ap(good_idx, junk_idx, pred_idx)
-    
+
     fcmc = np.mean(cmc, axis = 0)
     print('map:{}, r1_precision:{}'.format(np.mean(ap),fcmc[0]))

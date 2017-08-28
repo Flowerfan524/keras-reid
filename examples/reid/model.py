@@ -2,9 +2,10 @@ from keras.applications import vgg16, xception, resnet50
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout
 from keras.optimizers import SGD
+from utils import image+base_generator as ibg
 
 
-def get_model(model_name,input_shape=(224,224,3):
+def get_model(model_name,input_shape=(224,224,3)):
     if model_name is 'vgg16':
         base_model = vgg16.VGG16()
     elif model_name is 'xception':
