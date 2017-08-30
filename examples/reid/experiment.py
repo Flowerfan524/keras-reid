@@ -15,7 +15,7 @@ params1 = {
     'crop_shape': (299,299,3),
     'epochs': 10,
     'steps_per_epoch': 1500,
-    'batch_size': 32,
+    'batch_size': 16,
 }
 
 params2 = {
@@ -23,7 +23,7 @@ params2 = {
     'crop_shape': (224,224,3),
     'epochs': 10,
     'steps_per_epoch': 1500,
-    'batch_size': 32,
+    'batch_size': 16,
 }
 
 train_lst = '../data/train.lst.npz'
@@ -42,17 +42,19 @@ def split_data(train_lst, ratio=0.2):
         mid_idx = int(np.ceil(indices.shape[0] * ratio))
         lst_train += list(lst[indices[:mid_idx]])
         lst_untrain += list(lst[indices[mid_idx:]])
-        y_train += list(y[indices[:mix_idx]])
+        y_train += list(y[indices[:mid_idx]])
         y_untrain += list(y[indices[mid_idx:]])
     np.savez('../data/train_lst', lst=lst_train, label=y_train)
     np.savez('../data/untrain_lst', lst=lst_untrain, label=y_untrain)
 
                                 
-split_data(train_lst)
+#split_data(train_lst)
 train_lst = '../data/train_lst.npz'
 untrain_lst = '../data/untrain_lst.npz'
 
 model1,model2 = cotrain.cotrain(train_lst,untrain_lst,name_model1,name_model2,params1,params2)
+model1.save_weights('cotrain_xception.h5',by_name=True)
+model2.save_weights('cotrain_resnet.h5',by_name=True)
 
 fea_mod1 = Model(model1.input,model1.layers[-1].input)
 fea_mod2 = Model(model2.input,model2.layers[-2].input)

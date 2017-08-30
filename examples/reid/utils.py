@@ -7,13 +7,14 @@ from keras.preprocessing.image import ImageDataGenerator as IDG
 from sklearn.preprocessing import LabelBinarizer as LB
 
 
-def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True):
+def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True, flip=None):
     x = []
     for file in lst:
         im = read_input_img(file,input_shape,crop_shape,flip)
         x += [np.asarray(im,dtype='float32')]
     x = np.array(x)
-    x = reduce_mean(x)
+    if preprocess:
+        x = img_preprocess(x)
     return x
 
 def crop_image(im,crop_shape):
@@ -148,7 +149,7 @@ def process_images(img_names, img_cache,input_shape,crop_shape):
     return X
 
 
-def img_process(imgs, shift = (97.8286,99.046,105.606)):
+def img_preprocess(imgs, shift = (97.8286,99.046,105.606)):
     imgs[:,:,:,0] -= shift[2]
     imgs[:,:,:,1] -= shift[1]
     imgs[:,:,:,2] -= shift[0]
@@ -194,9 +195,9 @@ def create_pairs(x,y,neg_times=1):
 
 
 if __name__ == '__main__':
-    train_dire = '/home/zqx/Desktop/flowerfan/data/Market-1501-v15.09.15/bounding_box_train/'
-    test_dire = '/home/zqx/Desktop/flowerfan/data/Market-1501-v15.09.15/bounding_box_test/'
-    query_dire = '/home/zqx/Desktop/flowerfan/data/Market-1501-v15.09.15/query/'
+    train_dire = '/home/dxy/Desktop/flowerfan/data/Market-1501-v15.09.15/bounding_box_train/'
+    test_dire = '/home/dxy/Desktop/flowerfan/data/Market-1501-v15.09.15/bounding_box_test/'
+    query_dire = '/home/dxy/Desktop/flowerfan/data/Market-1501-v15.09.15/query/'
 
 
     x_train, y_train, cam_train = generate_train_lst(train_dire)
@@ -207,6 +208,6 @@ if __name__ == '__main__':
     np.savez('../data/test.lst', lst=x_test, label=y_test, cam=cam_test)
     np.savez('../data/query.lst', lst=x_query, label=y_query, cam=cam_query)
 
-    lst_pairs, y_diff, y_clss = create_pairs(x_train, y_train)
-    tuples = np.array([(x[0],x[1],y,z[0],z[1]) for x,y,z in zip(lst_pairs, y_diff, y_clss)], dtype=object)
-    np.savez('../data/input.lst', tuples = tuples)
+    #lst_pairs, y_diff, y_clss = create_pairs(x_train, y_train)
+    #tuples = np.array([(x[0],x[1],y,z[0],z[1]) for x,y,z in zip(lst_pairs, y_diff, y_clss)], dtype=object)
+    #np.savez('../data/input.lst', tuples = tuples)

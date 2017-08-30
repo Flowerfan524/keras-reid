@@ -11,7 +11,7 @@ import model
 
 
 
-def sel_idx(score, y, ratio=1):
+def sel_idx(score, y, ratio=0.1):
     add_indices = np.zeros(score.shape[0])
     clss = np.unique(y)
     kmap = {v:k for k,v in enumerate(clss)}
@@ -21,59 +21,66 @@ def sel_idx(score, y, ratio=1):
     for cls in range(score.shape[1]):
         indices = np.where(pred_y == cls)[0]
         cls_score = score[indices,cls]
-        idx_sort = np.argmax(score)
-        add_num = np.min(np.ceil(count_per_class[cls] * ratio), indices.shape[0])
+        idx_sort = np.argsort(cls_score)
+        add_num = min(int(np.ceil(count_per_class[cls] * ratio)), indices.shape[0])
         add_indices[indices[idx_sort[:add_num]]] = 1
-
 
     return add_indices.astype('bool')
 
 
 
 
-def cotrain(train_lst,untrain_lst,mname1,mname2,params1,params2):
-    train_data = np.load(train_lst)
-    untrain_data = np.load(untrain_lst)
+def cotrain(train_lst_file,untrain_lst_file,mname1,mname2,params1,params2):
+    train_data = np.load(train_lst_file)
+    untrain_data = np.load(untrain_lst_file)
     model1 = model.get_model(model_name=mname1)
     model2 = model.get_model(model_name=mname2)
-    optimizer=SGD(lr=0.001,momentum=0.9,decay=0.005)
-    model.train_model(model1,train_data,optimizer,params1)
-    model.train_model(model2,train_data,optimizer,params2)
+    optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
+    optimizer2=SGD(lr=0.001,momentum=0.9,decay=0.005)
+    model.train_model(model1,train_data,optimizer1,params1)
+    model.train_model(model2,train_data,optimizer2,params2)
     clss = np.unique(train_data['label'])
     kmap = {v:k for k,v in enumerate(clss)}
-    X_untrain = utils.extract_data_from_lst(untrain_data['lst'])
-    lst1,lst2 = copy.deepcopy(train_data['lst']),cooy.deepcopy(train_data['lst'])
-    y_train1,y_train2 = copy.deepcopy(train_data['label']),cppy.deepcopy(train_data['label'])
+    X_untrain1 = utils.extract_data_from_lst(untrain_data['lst'],params1['crop_shape'])
+    X_untrain2 = utils.extract_data_from_lst(untrain_data['lst'],params2['crop_shape'])
+    lst_untrain = untrain_data['lst'] 
+    lst1,lst2 = copy.deepcopy(train_data['lst']),copy.deepcopy(train_data['lst'])
+    lst1,lst2 = list(lst1),list(lst2)
+    y_train1,y_train2 = copy.deepcopy(train_data['label']),copy.deepcopy(train_data['label'])
     for step in range(5):
 
         # select unlabel data# feature_model1 = Model()
         # feature_model2 = Model()
-        prob1 = model1.predict(X_untrain)
-        prob2 = model2.predict(X_untrain)
+        print('select unlabel data')
+        prob1 = model1.predict(X_untrain1)
+        prob2 = model2.predict(X_untrain2)
         pred_y = np.argmax(prob1 + prob2, axis=1)
         add_idx1 = sel_idx(prob2, train_data['label'])
         add_idx2 = sel_idx(prob1, train_data['label'])
 
         #add unlabel data and train
-        lst1.extend(lst_untrain[add_idx1])
-        lst2.extend(lst_untrain[add_idx2])
-        add_y1 = clss(kmap[pred_y[add_idx1]])
-        add_y2 = clss(kmap[pred_y[add_idx2]])
-        y_train1 = np.vstack((y_train1,add_y1))
-        y_train2 = np.vstack((y_train2,add_y2))
+        print('train with augmented data')
+        lst1.extend(list(lst_untrain[add_idx1]))
+        lst2.extend(list(lst_untrain[add_idx2]))
+        add_y1 = clss[pred_y[add_idx1]]
+        add_y2 = clss[pred_y[add_idx2]]
+        y_train1 = np.hstack((y_train1,add_y1))
+        y_train2 = np.hstack((y_train2,add_y2))
 
         train1 = {'lst':lst1, 'label':y_train1}
-        train2 = {'lst':lst2, 'label':y_trian2}
+        train2 = {'lst':lst2, 'label':y_train2}
 
         model1 = model.get_model(model_name=mname1)
         model2 = model.get_model(model_name=mname2)
-        model.train_model(model1,train1,optimizer,params1)
-        model.train_model(model2,train2,optimizer,params2)
+        model.train_model(model1,train1,optimizer1,params1)
+        model.train_model(model2,train2,optimizer2,params2)
 
         # remove add untrain lst
+        print('remove used data')
         add_idx = add_idx1 + add_idx2
         lst_untrain = lst_untrain[~add_idx]
-        y_untrain = y_untrain[~add_idx]
+        X_untrain1 = X_untrain1[~add_idx]
+        X_untrain2 = X_untrain2[~add_idx]
         print('Add train size view 1: {}, view 2:{}'
               .format(add_y1.shape[0], add_y2.shape[0]))
     return model1,model2
