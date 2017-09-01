@@ -7,12 +7,17 @@ from utils import image_base_generator as ibg
 
 def get_model(model_name,input_shape=(224,224,3)):
     if model_name is 'vgg16':
+        print('build vgg16 model')
         base_model = vgg16.VGG16()
     elif model_name is 'xception':
+        print('build xception model')
         base_model = xception.Xception()
         input_shape = (299,299,3)
     elif model_name is 'resnet50':
+        print('build resnet50 model')
         base_model = resnet50.ResNet50()
+    else:
+        print('error! no model build')
 
     fea_model = Model(base_model.input, base_model.layers[-1].input)
     input1 = Input(shape=input_shape,name='input1')

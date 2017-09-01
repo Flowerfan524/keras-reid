@@ -11,7 +11,7 @@ import model
 
 
 
-def sel_idx(score, y, ratio=0.1):
+def sel_idx(score, y, ratio=0.2):
     add_indices = np.zeros(score.shape[0])
     clss = np.unique(y)
     kmap = {v:k for k,v in enumerate(clss)}
@@ -48,6 +48,7 @@ def cotrain(train_lst_file,untrain_lst_file,mname1,mname2,params1,params2):
     lst1,lst2 = list(lst1),list(lst2)
     y_train1,y_train2 = copy.deepcopy(train_data['label']),copy.deepcopy(train_data['label'])
     for step in range(5):
+        print('interation round {}'.format(step))
 
         # select unlabel data# feature_model1 = Model()
         # feature_model2 = Model()
@@ -67,12 +68,14 @@ def cotrain(train_lst_file,untrain_lst_file,mname1,mname2,params1,params2):
         y_train1 = np.hstack((y_train1,add_y1))
         y_train2 = np.hstack((y_train2,add_y2))
 
-        train1 = {'lst':lst1, 'label':y_train1}
-        train2 = {'lst':lst2, 'label':y_train2}
+        train1 = {'lst':np.array(lst1), 'label':np.array(y_train1)}
+        train2 = {'lst':np.array(lst2), 'label':np.array(y_train2)}
 
         model1 = model.get_model(model_name=mname1)
-        model2 = model.get_model(model_name=mname2)
+        optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
         model.train_model(model1,train1,optimizer1,params1)
+        model2 = model.get_model(model_name=mname2)
+        optimizer2=SGD(lr=0.001,momentum=0.9,decay=0.005)
         model.train_model(model2,train2,optimizer2,params2)
 
         # remove add untrain lst
