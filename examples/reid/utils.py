@@ -17,6 +17,14 @@ def extract_data_from_lst(lst,input_shape,crop_shape=None, preprocess=True, flip
         x = img_preprocess(x)
     return x
 
+def extract_feature(model,lst):
+    features = []
+    for file in lst:
+        im = read_input_img(file,model.input_shape[1:])
+        feature = model.predict(np.asarray(im,dtype='float32').reshape((-1,) + model.input_shape[1:]))
+        features += [np.squeeze(feature)]
+    return np.array(features)
+
 def crop_image(im,crop_shape):
     assert im.width > crop_shape[0] and im.height > crop_shape[1], 'error crop size'
     a = np.random.randint(im.width-crop_shape[0]+1)
