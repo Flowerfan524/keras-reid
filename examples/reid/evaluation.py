@@ -40,10 +40,10 @@ def evaluate(cos_dist,y1,y2,cam1,cam2):
     for idx,cls in enumerate(y1):
         print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
         good_idx = np.intersect1d(np.where(y2 == cls)[0],
-                np.where(cam2[idx] != cam1[idx])[0])
+                np.where(cam2 != cam1[idx])[0])
         junk_idx1 = np.intersect1d(np.where(y2 == cls)[0],
-                np.where(cam2[idx] == cam1[idx])[0])
-        junk_idx2 = np.where(cam2 == -1)[0]
+                np.where(cam2 == cam1[idx])[0])
+        junk_idx2 = np.where(y2 == -1)[0]
         junk_idx = np.union1d(junk_idx1, junk_idx2)
         pred_idx = np.argsort(cos_dist[idx,:])
         ap[idx],cmc[idx,:] = compute_ap(good_idx, junk_idx, pred_idx)
@@ -68,16 +68,18 @@ if __name__ == '__main__':
     cmc = np.zeros(shape=cos_dist.shape)
     ap = np.zeros(cos_dist.shape[0])
 
-    for idx,cls in enumerate(query_data['label']):
-        #print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
-        good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0],
-                np.where(test_data['cam'] != query_data['cam'][idx])[0])
-        junk_idx1 = np.intersect1d(np.where(test_data['label'] == cls)[0],
-                np.where(test_data['cam'] == query_data['cam'][idx])[0])
-        junk_idx2 = np.where(test_data['label'] == -1)[0]
-        junk_idx = np.union1d(junk_idx1, junk_idx2)
-        pred_idx = np.argsort(cos_dist[idx,:])
-        ap[idx],cmc[idx,:] = compute_ap(good_idx, junk_idx, pred_idx)
+    #for idx,cls in enumerate(query_data['label']):
+    #    print('processing {}/{} query file'.format(idx+1, cos_dist.shape[0]))
+    #    good_idx = np.intersect1d(np.where(test_data['label'] == cls)[0],
+    #            np.where(test_data['cam'] != query_data['cam'][idx])[0])
+    #    junk_idx1 = np.intersect1d(np.where(test_data['label'] == cls)[0],
+    #            np.where(test_data['cam'] == query_data['cam'][idx])[0])
+    #    junk_idx2 = np.where(test_data['label'] == -1)[0]
+    #    junk_idx = np.union1d(junk_idx1, junk_idx2)
+    #    pred_idx = np.argsort(cos_dist[idx,:])
+    #    ap[idx],cmc[idx,:] = compute_ap(good_idx, junk_idx, pred_idx)
 
-    fcmc = np.mean(cmc, axis = 0)
-    print('map:{}, r1_precision:{}'.format(np.mean(ap),fcmc[0]))
+    #fcmc = np.mean(cmc, axis = 0)
+    #print('map:{}, r1_precision:{}'.format(np.mean(ap),fcmc[0]))
+    
+    evaluate(cos_dist,query_data['label'],test_data['label'],query_data['cam'],test_data['cam'])

@@ -30,14 +30,14 @@ params2 = {
 
 train_lst = '../data/train_lst.npz'
 untrain_lst = '../data/untrain_lst.npz'
-#model1,model2 = cotrain.cotrain(train_lst,untrain_lst,name_model1,name_model2,params1,params2)
+model1,model2 = cotrain.cotrain([train_lst,untrain_lst],[name_model1,name_model2],[params1,params2])
 #model1.save_weights('../models/cotrain_xception.h5')
 #model2.save_weights('../models/cotrain_resnet.h5')
 
-model1 = model.get_model(model_name=name_model1)
-model2 = model.get_model(model_name=name_model2)
-model1.load_weights('../models/cotrain_xception.h5')
-model2.load_weights('../models/cotrain_resnet.h5')
+#model1 = model.get_model(model_name=name_model1)
+#model2 = model.get_model(model_name=name_model2)
+#model1.load_weights('../models/cotrain_xception.h5')
+#model2.load_weights('../models/cotrain_resnet.h5')
 fea_mod1 = Model(model1.input,model1.layers[-1].input)
 fea_mod2 = Model(model2.input,model2.layers[-1].input)
 

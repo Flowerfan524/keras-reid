@@ -30,24 +30,26 @@ def sel_idx(score, y, ratio=0.2):
 
 
 
-def cotrain(train_lst_file,untrain_lst_file,mname1,mname2,params1,params2):
-    train_data = np.load(train_lst_file)
-    untrain_data = np.load(untrain_lst_file)
-    model1 = model.get_model(model_name=mname1)
-    model2 = model.get_model(model_name=mname2)
-    optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
-    optimizer2=SGD(lr=0.001,momentum=0.9,decay=0.005)
-    model.train_model(model1,train_data,optimizer1,params1)
-    model.train_model(model2,train_data,optimizer2,params2)
+def cotrain(lst_files,model_names,model_params):
+    #initiate data
+    train_data = np.load(lst_files[0])
+    untrain_data = np.load(lst_files[1])
     clss = np.unique(train_data['label'])
-    kmap = {v:k for k,v in enumerate(clss)}
-    X_untrain1 = utils.extract_data_from_lst(untrain_data['lst'],params1['crop_shape'])
-    X_untrain2 = utils.extract_data_from_lst(untrain_data['lst'],params2['crop_shape'])
     lst_untrain = untrain_data['lst'] 
     lst1,lst2 = copy.deepcopy(train_data['lst']),copy.deepcopy(train_data['lst'])
     lst1,lst2 = list(lst1),list(lst2)
     y_train1,y_train2 = copy.deepcopy(train_data['label']),copy.deepcopy(train_data['label'])
-    for step in range(5):
+    X_untrain1 = utils.extract_data_from_lst(untrain_data['lst'],params1['crop_shape'])
+    X_untrain2 = utils.extract_data_from_lst(untrain_data['lst'],params2['crop_shape'])
+    
+    #initiate model 
+    model1 = model.get_model(model_name=model_names[0])
+    model2 = model.get_model(model_name=model_names[1])
+    optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
+    optimizer2=SGD(lr=0.001,momentum=0.9,decay=0.005)
+    model.train_model(model1,train_data,optimizer1,params1)
+    model.train_model(model2,train_data,optimizer2,params2)
+    for step in range(0):
         print('interation round {}'.format(step))
 
         # select unlabel data# feature_model1 = Model()
