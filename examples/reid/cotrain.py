@@ -35,14 +35,14 @@ def cotrain(lst_files,model_names,model_params):
     train_data = np.load(lst_files[0])
     untrain_data = np.load(lst_files[1])
     clss = np.unique(train_data['label'])
-    lst_untrain = untrain_data['lst'] 
+    lst_untrain = untrain_data['lst']
     lst1,lst2 = copy.deepcopy(train_data['lst']),copy.deepcopy(train_data['lst'])
     lst1,lst2 = list(lst1),list(lst2)
     y_train1,y_train2 = copy.deepcopy(train_data['label']),copy.deepcopy(train_data['label'])
     X_untrain1 = utils.extract_data_from_lst(untrain_data['lst'],params1['crop_shape'])
     X_untrain2 = utils.extract_data_from_lst(untrain_data['lst'],params2['crop_shape'])
-    
-    #initiate model 
+
+    #initiate model
     model1 = model.get_model(model_name=model_names[0])
     model2 = model.get_model(model_name=model_names[1])
     optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
@@ -93,22 +93,31 @@ def cotrain(lst_files,model_names,model_params):
 
 
 def spaco(train_lst,untrain_lst,mname1,mname2,params):
-    train_data = np.load(train_lst)
-    untrain_data = np.load(untrain_lst)
+
+    #initiate data
+    train_data = np.load(lst_files[0])
+    untrain_data = np.load(lst_files[1])
     clss = np.unique(train_data['label'])
-    kmap = {v:k for k,v in enumerate(clss)}
-    X_untrain = utils.extract_data_from_lst(untrain_data['lst'])
-    model1 = model.get_model(model_name=mname1)
-    model2 = model.get_model(model_name=mname2)
-    optimizer=SGD(lr=0.001,momentum=0.9,decay=0.005)
-    model.train_model(model1,train_data,optimizer,params)
-    model.train_model(model2,train_data,optimizer,params)
-    y_train1,y_train2 = copy.deepcopy(train_data['label']),cppy.deepcopy(train_data['label'])
-    prob1 = model1.predict(X_untrain)
-    prob2 = model2.predict(X_untrain)
-    pred_y = np.argmax(prob1 + prob2, axis=1)
-    add_ratio = 1
+    lst_untrain = untrain_data['lst']
+    lst1,lst2 = copy.deepcopy(train_data['lst']),copy.deepcopy(train_data['lst'])
+    lst1,lst2 = list(lst1),list(lst2)
+    y_train1,y_train2 = copy.deepcopy(train_data['label']),copy.deepcopy(train_data['label'])
+    X_untrain1 = utils.extract_data_from_lst(untrain_data['lst'],params1['crop_shape'])
+    X_untrain2 = utils.extract_data_from_lst(untrain_data['lst'],params2['crop_shape'])
+    add_ratio = 0.2
     gamma = 1
+
+    #initiate model
+    model1 = model.get_model(model_name=model_names[0])
+    model2 = model.get_model(model_name=model_names[1])
+    optimizer1=SGD(lr=0.01,momentum=0.9,decay=0.005)
+    optimizer2=SGD(lr=0.001,momentum=0.9,decay=0.005)
+    model.train_model(model1,train_data,optimizer1,params1)
+    model.train_model(model2,train_data,optimizer2,params2)
+
+    prob1 = model1.predict(X_untrain1)
+    prob2 = model2.predict(X_untrain2)
+    pred_y = np.argmax(prob1 + prob2, axis=1)
     for step in range(5):
 
         # select unlabel data from model1
@@ -118,8 +127,8 @@ def spaco(train_lst,untrain_lst,mname1,mname2,params):
         # add data to model 2
         score_conf = pred_prob2
         score_conf[idx_conf,idx_cls] += gamma
-        add_idx = sel_idx(score_conf, train_data['label'], add_ratio=1)
-        add_y = clss(kmap[pred_y[add_idx]])
+        add_idx = sel_idx(score_conf, train_data['label'], add_ratio=add_ratio)
+        add_y = clss[pred_y[add_idx]]
 
 
         #add unlabel data and train
@@ -148,7 +157,7 @@ def spaco(train_lst,untrain_lst,mname1,mname2,params):
         score_conf = pred_prob1
         score_conf[idx_conf,idx_cls] += gamma
         add_idx = sel_idx(score_conf, train_data['label'],add_ratio)
-        add_y = clss(kmap[pred_y[add_idx]])
+        add_y = clss[pred_y[add_idx]]
 
         #add unlabel data and train
         lst = copy.deepcopy(train_data['lst'])
